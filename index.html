@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <!-- Thư viện QRCode.js để tạo mã QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quét QR Quản Lý Kiện Hàng - Kiểm Tra Sản Phẩm</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR Code Generator Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-qrcode"></i>
+                <h1>Quét QR Quản Lý Kiện Hàng</h1>
+            </div>
+            <p>Hệ thống theo dõi kiện hàng với kiểm tra sản phẩm thực tế</p>
+            
+            <div class="user-info" id="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span id="current-user-name">Chưa đăng nhập</span>
+                <span id="user-role-badge" class="role-badge" style="display: none;"></span>
+                <button id="logout-btn" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem; display: none;">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+            </div>
+            
+            <div class="nav-tabs">
+                <button class="tab-btn active" data-tab="scan">
+                    <i class="fas fa-camera"></i> Quét & Kiểm Tra
+                    <span class="tab-badge" id="scan-count" style="display: none;"></span>
+                </button>
+                <button class="tab-btn" data-tab="create" id="create-tab-btn">
+                    <i class="fas fa-plus-circle"></i> Tạo Kiện Hàng
+                </button>
+                <button class="tab-btn" data-tab="parcels">
+                    <i class="fas fa-box"></i> Danh Sách Kiện
+                    <span class="tab-badge" id="parcels-count" style="display: none;"></span>
+                </button>
+                <button class="tab-btn" data-tab="history">
+                    <i class="fas fa-history"></i> Lịch Sử
+                    <span class="tab-badge" id="history-count" style="display: none;"></span>
+                </button>
+                <button class="tab-btn" data-tab="guide">
+                    <i class="fas fa-question-circle"></i> Hướng Dẫn
+                </button>
+                <button class="tab-btn" data-tab="account">
+                    <i class="fas fa-user-cog"></i> Tài khoản
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <!-- Tab Quét QR & Kiểm Tra Sản Phẩm -->
+        <div id="scan" class="tab-content active">
+            <div class="card">
+                <h2><i class="fas fa-camera"></i> Quét QR Code & Kiểm Tra Sản Phẩm</h2>
+                
+                <div id="login-section" class="auth-section">
+                    <h3><i class="fas fa-id-card"></i> Đăng nhập hệ thống</h3>
+                    <div class="auth-tabs" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <div class="auth-tab active" data-auth-form="login" style="padding: 10px 15px; background: #f8f9fa; border-radius: 5px; cursor: pointer;">Đăng nhập</div>
+                        <div class="auth-tab" data-auth-form="register" style="padding: 10px 15px; background: #f8f9fa; border-radius: 5px; cursor: pointer;">Đăng ký tài khoản</div>
+                    </div>
+                    
+                    <!-- Form đăng nhập -->
+                    <div id="login-form" class="auth-form active">
+                        <div class="form-group">
+                            <label for="login-code"><i class="fas fa-id-badge"></i> Mã đăng nhập:</label>
+                            <input type="text" id="login-code" class="form-control" placeholder="Nhập mã NVK-xxx hoặc NGH-xxx">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="login-password"><i class="fas fa-lock"></i> Mật khẩu:</label>
+                            <input type="password" id="login-password" class="form-control" placeholder="Nhập mật khẩu">
+                        </div>
+                        
+                        <div class="auth-actions" style="display: flex; align-items: center; gap: 15px;">
+                            <button id="login-btn" class="btn btn-success">
+                                <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                            </button>
+                            <span class="auth-link" data-auth-form="register" style="color: var(--secondary-color); cursor: pointer; text-decoration: underline;">Chưa có tài khoản? Đăng ký ngay</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Form đăng ký -->
+                    <div id="register-form" class="auth-form" style="display: none;">
+                        <div class="form-group">
+                            <label for="register-code"><i class="fas fa-id-badge"></i> Mã đăng ký (tự đặt):</label>
+                            <input type="text" id="register-code" class="form-control" placeholder="Ví dụ: NVK-001, NGH-001">
+                            <small style="color: #666;">Mã phải bắt đầu bằng NVK- (nhân viên kho) hoặc NGH- (người gói hàng)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="register-name"><i class="fas fa-user"></i> Họ tên:</label>
+                            <input type="text" id="register-name" class="form-control" placeholder="Nhập họ tên của bạn">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="register-email"><i class="fas fa-envelope"></i> Email:</label>
+                            <input type="email" id="register-email" class="form-control" placeholder="Nhập email của bạn">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="register-password"><i class="fas fa-lock"></i> Mật khẩu:</label>
+                            <input type="password" id="register-password" class="form-control" placeholder="Nhập mật khẩu">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="register-confirm-password"><i class="fas fa-lock"></i> Xác nhận mật khẩu:</label>
+                            <input type="password" id="register-confirm-password" class="form-control" placeholder="Nhập lại mật khẩu">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="register-phone"><i class="fas fa-phone"></i> Số điện thoại:</label>
+                            <input type="text" id="register-phone" class="form-control" placeholder="Nhập số điện thoại">
+                        </div>
+                        
+                        <div class="auth-actions" style="display: flex; align-items: center; gap: 15px;">
+                            <button id="register-btn" class="btn btn-success">
+                                <i class="fas fa-user-plus"></i> Đăng ký tài khoản
+                            </button>
+                            <span class="auth-link" data-auth-form="login" style="color: var(--secondary-color); cursor: pointer; text-decoration: underline;">Đã có tài khoản? Đăng nhập ngay</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="user-auth-status" style="display: none;">
+                    <div class="verification-section">
+                        <h3><i class="fas fa-user-check"></i> Thông tin đăng nhập</h3>
+                        <p>Đã đăng nhập với mã: <strong id="logged-user-code"></strong></p>
+                        <p>Vai trò: <strong id="logged-user-role"></strong></p>
+                        <p>Họ tên: <strong id="logged-user-name"></strong></p>
+                        <button id="user-logout-btn" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="camera-container">
+                    <div id="reader"></div>
+                    <div class="camera-controls">
+                        <button id="start-scan-btn" class="btn">
+                            <i class="fas fa-play"></i> Bật Camera
+                        </button>
+                        <button id="stop-scan-btn" class="btn btn-danger" style="display: none;">
+                            <i class="fas fa-stop"></i> Tắt Camera
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="manual-parcel-id"><i class="fas fa-keyboard"></i> Hoặc nhập mã kiện hàng thủ công:</label>
+                    <input type="text" id="manual-parcel-id" class="form-control" placeholder="Ví dụ: P-12345678">
+                </div>
+                
+                <button id="scan-btn" class="btn">
+                    <i class="fas fa-search"></i> Tìm & Kiểm Tra Kiện Hàng
+                </button>
+                
+                <div id="parcel-result" class="parcel-info" style="display: none;">
+                    <h3>Thông tin kiện hàng</h3>
+                    <div class="parcel-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Mã kiện hàng:</span>
+                            <span id="result-id">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Số sản phẩm:</span>
+                            <span id="result-item-count">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Tổng số lượng:</span>
+                            <span id="result-total-quantity">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Người tạo kiện:</span>
+                            <span id="result-creator">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Trạng thái hiện tại:</span>
+                            <span id="result-status">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Lần kiểm tra cuối:</span>
+                            <span id="result-last-verification">-</span>
+                        </div>
+                    </div>
+                    
+                    <div id="product-list-container" class="items-container" style="margin-top: 15px;">
+                        <!-- Danh sách sản phẩm sẽ được thêm bằng JS -->
+                    </div>
+                    
+                    <div class="action-buttons" id="action-buttons">
+                        <!-- Các nút hành động sẽ được thêm bằng JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Tạo kiện hàng -->
+        <div id="create" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-plus-circle"></i> Tạo Kiện Hàng Mới</h2>
+                
+                <div id="permission-notice-create" class="permission-notice" style="display: none; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; color: #856404;">
+                    <i class="fas fa-exclamation-triangle"></i> Chỉ người gói hàng (NGH-) mới có quyền tạo kiện hàng mới.
+                </div>
+                
+                <div id="create-form" style="display: none;">
+                    <div class="help-highlight" id="create-help">
+                        <h4><i class="fas fa-lightbulb"></i> Hướng dẫn tạo kiện hàng</h4>
+                        <p>1. Nhập mô tả kiện hàng</p>
+                        <p>2. Thêm sản phẩm với đầy đủ thông tin (tên, số lượng, nơi sản xuất, hạn sử dụng, hình ảnh)</p>
+                        <p>3. Hình ảnh sẽ được lưu dưới dạng Base64 để đảm bảo tồn tại lâu dài</p>
+                        <p>4. Hệ thống sẽ tạo QR Code thật để quét thật</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="parcel-desc"><i class="fas fa-box-open"></i> Mô tả kiện hàng:</label>
+                        <input type="text" id="parcel-desc" class="form-control" placeholder="Ví dụ: Đơn hàng điện tử, Quần áo...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-boxes"></i> Danh sách sản phẩm trong kiện hàng:</label>
+                        <div class="items-container" id="items-container">
+                            <div class="item-row">
+                                <input type="text" class="form-control item-input" placeholder="Tên sản phẩm" required>
+                                <input type="number" class="form-control item-quantity-input" placeholder="Số lượng" value="1" min="1" required>
+                                <input type="text" class="form-control item-input" placeholder="Nơi sản xuất">
+                                <input type="date" class="form-control item-input" placeholder="Hạn sử dụng">
+                                <div class="file-input-container">
+                                    <input type="file" class="item-image-input" accept="image/*" capture="environment">
+                                    <div class="file-input-label">
+                                        <i class="fas fa-camera"></i> Chụp/Tải ảnh
+                                    </div>
+                                </div>
+                                <button class="btn btn-success add-item-btn">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button id="add-more-items-btn" class="btn btn-info" style="margin-top: 10px;">
+                            <i class="fas fa-plus-circle"></i> Thêm sản phẩm khác
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="creator-name"><i class="fas fa-user"></i> Tên người gói hàng:</label>
+                        <input type="text" id="creator-name" class="form-control" placeholder="Nhập tên người tạo kiện" value="">
+                    </div>
+                    
+                    <button id="create-parcel-btn" class="btn btn-success">
+                        <i class="fas fa-qrcode"></i> Tạo Kiện Hàng & Sinh QR Code
+                    </button>
+                    
+                    <div id="created-parcel-info" style="display: none; margin-top: 25px;">
+                        <div class="qr-code-container">
+                            <h3>QR Code cho kiện hàng</h3>
+                            <div id="qrcode"></div>
+                            <p id="created-parcel-id" style="margin-top: 15px; font-weight: 600;"></p>
+                            <p>In QR code này và dán lên kiện hàng</p>
+                            <button id="download-qr-btn" class="btn">
+                                <i class="fas fa-download"></i> Tải QR Code
+                            </button>
+                        </div>
+                        
+                        <div class="parcel-info">
+                            <h3>Thông tin kiện hàng vừa tạo</h3>
+                            <div class="parcel-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Mã kiện hàng:</span>
+                                    <span id="new-parcel-id">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Mô tả:</span>
+                                    <span id="new-parcel-desc">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Số sản phẩm:</span>
+                                    <span id="new-parcel-item-count">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Tổng số lượng:</span>
+                                    <span id="new-parcel-total-quantity">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Thời gian tạo:</span>
+                                    <span id="new-parcel-time">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Người tạo:</span>
+                                    <span id="new-parcel-creator">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form sửa kiện hàng -->
+                <div id="edit-form" style="display: none;">
+                    <div class="help-highlight">
+                        <h4><i class="fas fa-edit"></i> Sửa kiện hàng</h4>
+                        <p>Chỉ có thể sửa kiện hàng ở trạng thái "Đã tạo" (created)</p>
+                        <p>Khi sửa xong, tất cả thay đổi sẽ được lưu tự động</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-parcel-id"><i class="fas fa-barcode"></i> Mã kiện hàng:</label>
+                        <input type="text" id="edit-parcel-id" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-parcel-desc"><i class="fas fa-box-open"></i> Mô tả kiện hàng:</label>
+                        <input type="text" id="edit-parcel-desc" class="form-control" placeholder="Ví dụ: Đơn hàng điện tử, Quần áo...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-boxes"></i> Danh sách sản phẩm trong kiện hàng:</label>
+                        <div class="items-container" id="edit-items-container">
+                            <!-- Items sẽ được thêm bằng JS -->
+                        </div>
+                        <button id="edit-add-more-items-btn" class="btn btn-info" style="margin-top: 10px;">
+                            <i class="fas fa-plus-circle"></i> Thêm sản phẩm khác
+                        </button>
+                    </div>
+                    
+                    <div class="edit-actions">
+                        <button id="save-edit-btn" class="btn btn-success">
+                            <i class="fas fa-save"></i> Lưu thay đổi
+                        </button>
+                        <button id="cancel-edit-btn" class="btn">
+                            <i class="fas fa-times"></i> Hủy bỏ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Danh sách kiện hàng -->
+        <div id="parcels" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-box"></i> Danh Sách Kiện Hàng <span id="parcels-total-count"></span></h2>
+                
+                <div class="form-group">
+                    <input type="text" id="search-parcel" class="form-control" placeholder="Tìm kiếm kiện hàng theo ID, mô tả, sản phẩm...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Lọc theo trạng thái:</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                        <button class="btn status-filter active" data-status="all">Tất cả (<span id="count-all">0</span>)</button>
+                        <button class="btn status-filter" data-status="created">Đã tạo (<span id="count-created">0</span>)</button>
+                        <button class="btn status-filter" data-status="verified">Đã kiểm tra (<span id="count-verified">0</span>)</button>
+                        <button class="btn status-filter" data-status="exported">Đã xuất kho (<span id="count-exported">0</span>)</button>
+                        <button class="btn status-filter" data-status="problem">Có vấn đề (<span id="count-problem">0</span>)</button>
+                    </div>
+                </div>
+                
+                <div id="parcels-list-container">
+                    <!-- Danh sách kiện hàng sẽ được thêm bằng JS -->
+                </div>
+                
+                <!-- Pagination -->
+                <div id="pagination-container" class="pagination" style="display: none;">
+                    <!-- Pagination buttons sẽ được thêm bằng JS -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Lịch sử hoạt động -->
+        <div id="history" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-history"></i> Lịch Sử Hoạt Động Hệ Thống <span id="history-total-count"></span></h2>
+                <p>Hiển thị tất cả các hoạt động quét QR, kiểm tra sản phẩm và thay đổi trạng thái</p>
+                
+                <div class="logs-container" id="all-logs-container">
+                    <!-- Lịch sử sẽ được thêm bằng JS -->
+                </div>
+                
+                <!-- Pagination cho lịch sử -->
+                <div id="history-pagination-container" class="pagination" style="display: none;">
+                    <!-- Pagination buttons sẽ được thêm bằng JS -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Hướng dẫn -->
+        <div id="guide" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-question-circle"></i> Hướng Dẫn Sử Dụng Hệ Thống</h2>
+                
+                <div class="guide-section">
+                    <h3><i class="fas fa-user-tie"></i> Vai trò trong hệ thống</h3>
+                    <div class="guide-step">
+                        <h4><span class="step-number">1</span> Người gói hàng (NGH-)</h4>
+                        <ul>
+                            <li>Tạo kiện hàng mới với đầy đủ thông tin sản phẩm</li>
+                            <li>Chụp ảnh sản phẩm và lưu vào hệ thống</li>
+                            <li>Sửa kiện hàng ở trạng thái "Đã tạo"</li>
+                            <li>Xem tất cả kiện hàng mình đã tạo</li>
+                        </ul>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">2</span> Nhân viên kho (NVK-)</h4>
+                        <ul>
+                            <li>Quét QR code kiện hàng để kiểm tra</li>
+                            <li>Đối chiếu sản phẩm thực tế với thông tin hệ thống</li>
+                            <li>Xác nhận kiện hàng đã đúng và đủ</li>
+                            <li>Xuất kho kiện hàng sau khi kiểm tra thành công</li>
+                            <li>Ghi chú vấn đề nếu phát hiện sai sót</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="guide-section">
+                    <h3><i class="fas fa-road"></i> Quy trình làm việc</h3>
+                    <div class="guide-step">
+                        <h4><span class="step-number">1</span> Tạo kiện hàng (NGH)</h4>
+                        <p>NGH tạo kiện hàng, thêm sản phẩm, chụp ảnh và tạo QR code. Hệ thống sinh QR code thật để quét thật.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">2</span> Kiểm tra kiện hàng (NVK)</h4>
+                        <p>NVK quét QR code, đối chiếu sản phẩm thực tế với thông tin hệ thống. Xác nhận "Thành công" hoặc "Có vấn đề".</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">3</span> Xuất kho (NVK)</h4>
+                        <p>Sau khi kiểm tra thành công, NVK thực hiện "Xuất kho" để đánh dấu kiện đã giao cho bộ phận vận chuyển.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">4</span> Sửa kiện hàng (NGH)</h4>
+                        <p>NGH có thể sửa kiện hàng ở trạng thái "Đã tạo" nếu cần điều chỉnh thông tin.</p>
+                    </div>
+                </div>
+                
+                <div class="guide-section">
+                    <h3><i class="fas fa-camera"></i> Hướng dẫn chụp ảnh sản phẩm</h3>
+                    <div class="guide-step">
+                        <h4><span class="step-number">1</span> Chuẩn bị</h4>
+                        <p>Đảm bảo sản phẩm được đặt trong khu vực đủ sáng, rõ nét. Chụp toàn bộ sản phẩm hoặc phần quan trọng.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">2</span> Lưu trữ ảnh</h4>
+                        <p>Hệ thống lưu ảnh dưới dạng Base64, đảm bảo ảnh tồn tại lâu dài và không bị mất khi tải lại trang.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">3</span> Đối chiếu ảnh</h4>
+                        <p>NVK có thể sử dụng ảnh đã chụp để đối chiếu với sản phẩm thực tế trong quá trình kiểm tra.</p>
+                    </div>
+                </div>
+                
+                <div class="guide-section">
+                    <h3><i class="fas fa-qrcode"></i> Hướng dẫn QR Code</h3>
+                    <div class="guide-step">
+                        <h4><span class="step-number">1</span> Tạo QR Code</h4>
+                        <p>Hệ thống tạo QR Code thật chứa mã kiện hàng, có thể in ra và dán lên kiện hàng.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">2</span> Quét QR Code</h4>
+                        <p>Sử dụng camera điện thoại hoặc máy quét chuyên dụng để quét QR Code. Đảm bảo án sáng đủ và camera sạch sẽ.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h4><span class="step-number">3</span> Xử lý lỗi quét</h4>
+                        <p>Nếu không quét được, có thể nhập thủ công mã kiện hàng trong ô "Nhập mã kiện hàng thủ công".</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Quản lý tài khoản -->
+        <div id="account" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-user-cog"></i> Quản lý tài khoản</h2>
+                
+                <div id="account-info" style="display: none;">
+                    <div class="parcel-info">
+                        <h3>Thông tin tài khoản</h3>
+                        <div class="parcel-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Mã tài khoản:</span>
+                                <span id="account-code">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Họ tên:</span>
+                                <span id="account-name">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Email:</span>
+                                <span id="account-email">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Số điện thoại:</span>
+                                <span id="account-phone">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Vai trò:</span>
+                                <span id="account-role">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Ngày đăng ký:</span>
+                                <span id="account-registered">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <h3><i class="fas fa-key"></i> Đổi mật khẩu</h3>
+                        <div class="form-group">
+                            <label for="current-password">Mật khẩu hiện tại:</label>
+                            <input type="password" id="current-password" class="form-control" placeholder="Nhập mật khẩu hiện tại">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-password">Mật khẩu mới:</label>
+                            <input type="password" id="new-password" class="form-control" placeholder="Nhập mật khẩu mới">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-new-password">Xác nhận mật khẩu mới:</label>
+                            <input type="password" id="confirm-new-password" class="form-control" placeholder="Nhập lại mật khẩu mới">
+                        </div>
+                        <button id="change-password-btn" class="btn btn-warning">
+                            <i class="fas fa-key"></i> Đổi mật khẩu
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Khu vực nguy hiểm</h3>
+                        <p>Xóa tài khoản sẽ xóa vĩnh viễn tất cả dữ liệu liên quan đến tài khoản này.</p>
+                        <button id="delete-account-btn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Xóa tài khoản
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="account-login-required" class="permission-notice" style="padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; color: #856404;">
+                    <i class="fas fa-exclamation-triangle"></i> Vui lòng đăng nhập để xem thông tin tài khoản.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal kiểm tra sản phẩm thực tế -->
+    <div id="verification-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-clipboard-check"></i> Kiểm Tra Sản Phẩm Thực Tế</h3>
+            <p>Kiểm tra sản phẩm thực tế so với thông tin hệ thống</p>
+            
+            <div id="verification-content">
+                <!-- Nội dung kiểm tra sẽ được thêm bằng JS -->
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="complete-verification-btn" class="btn btn-success">
+                    <i class="fas fa-check-circle"></i> Hoàn tất kiểm tra
+                </button>
+                <button id="cancel-verification-btn" class="btn">
+                    <i class="fas fa-times"></i> Hủy bỏ
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal hiển thị chi tiết kiện hàng -->
+    <div id="parcel-detail-modal" class="modal">
+        <div class="modal-content">
+            <h3>Chi tiết kiện hàng</h3>
+            <div id="modal-parcel-details"></div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button id="close-modal-btn" class="btn">Đóng</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal camera chụp ảnh -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content camera-modal">
+            <h3><i class="fas fa-camera"></i> Chụp ảnh kiểm tra</h3>
+            <div id="camera-preview-container">
+                <video id="camera-preview" autoplay playsinline class="camera-preview"></video>
+                <canvas id="camera-canvas" style="display: none;"></canvas>
+            </div>
+            <div id="captured-image-container" style="display: none;">
+                <h4>Ảnh đã chụp:</h4>
+                <img id="captured-image" class="camera-preview" src="" alt="Ảnh đã chụp">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: center;">
+                <button id="capture-btn" class="btn btn-success">
+                    <i class="fas fa-camera"></i> Chụp ảnh
+                </button>
+                <button id="retake-btn" class="btn btn-warning" style="display: none;">
+                    <i class="fas fa-redo"></i> Chụp lại
+                </button>
+                <button id="use-photo-btn" class="btn btn-info" style="display: none;">
+                    <i class="fas fa-check"></i> Sử dụng ảnh này
+                </button>
+                <button id="close-camera-btn" class="btn">
+                    <i class="fas fa-times"></i> Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal thông báo quét thành công -->
+    <div id="scan-success-modal" class="modal">
+        <div class="modal-content scan-success-modal">
+            <div class="scan-success-content">
+                <div class="scan-success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h3 class="scan-success-title">Kiểm tra thành công!</h3>
+                <div class="scan-success-details" id="scan-success-details">
+                    <!-- Nội dung sẽ được thêm bằng JS -->
+                </div>
+                <button id="close-scan-success-modal" class="btn btn-success">
+                    <i class="fas fa-check"></i> Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Dialog -->
+    <div id="confirmation-dialog" class="confirmation-dialog">
+        <div class="confirmation-content">
+            <h3 id="confirmation-title">Xác nhận hành động</h3>
+            <p id="confirmation-message">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            <div class="confirmation-actions">
+                <button id="confirm-yes" class="btn btn-success">Có</button>
+                <button id="confirm-no" class="btn">Không</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Hệ thống quét QR quản lý kiện hàng với kiểm tra sản phẩm thực tế | Dữ liệu được lưu trữ cục bộ trên trình duyệt</p>
+            <p>Phiên bản nâng cao: Hệ thống đăng ký và đăng nhập với mật khẩu bảo mật</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
