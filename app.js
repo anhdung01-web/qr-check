@@ -769,10 +769,16 @@ function onScanSuccess(decodedText) {
     stopScanner();
     playBeepSound();
     
+    // CHUẨN HÓA MÃ KIỆN HÀNG
+    const parcelId = decodedText.trim().toUpperCase();
+    
+    console.log('📱 Mã QR quét được:', parcelId);
+    console.log('📦 Danh sách kiện hàng:', Object.keys(parcels));
+    
     // Tìm kiện hàng
-    const parcel = parcels[decodedText];
+    const parcel = parcels[parcelId];
     if (!parcel) {
-        alert('Kiện hàng không tồn tại trong hệ thống!');
+        alert(`❌ Kiện hàng "${parcelId}" không tồn tại trong hệ thống!\n\nVui lòng kiểm tra:\n1. Kiện hàng đã được lưu chưa?\n2. Mã QR có chính xác không?`);
         return;
     }
     
