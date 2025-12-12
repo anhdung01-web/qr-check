@@ -10,7 +10,6 @@ let verificationData = null;
 let currentCameraStream = null;
 let currentProductIndex = null;
 let editingParcelId = null;
-
 // Cấu hình phân trang
 const paginationConfig = {
     parcelsPerPage: 10,
