@@ -681,25 +681,29 @@ function stopScanner() {
 }
 
 // Xử lý khi quét thành công - TỰ ĐỘNG HIỂN THỊ THÔNG BÁO THÀNH CÔNG
+// Xử lý khi quét thành công - ĐÃ SỬA ĐỂ HIỂN THỊ CHI TIẾT
 function onScanSuccess(decodedText) {
+    // 1. Dừng camera và phát tiếng bíp
     stopScanner();
     playBeepSound();
     
-    // CHUẨN HÓA MÃ KIỆN HÀNG
+    // 2. Chuẩn hóa mã kiện hàng
     const parcelId = decodedText.trim().toUpperCase();
     
     console.log('📱 Mã QR quét được:', parcelId);
-    console.log('📦 Danh sách kiện hàng:', Object.keys(parcels));
     
-    // Tìm kiện hàng
-    const parcel = parcels[parcelId];
-    if (!parcel) {
+    // 3. Kiểm tra xem kiện hàng có tồn tại không
+    if (!parcels[parcelId]) {
         alert(`❌ Kiện hàng "${parcelId}" không tồn tại trong hệ thống!\n\nVui lòng kiểm tra:\n1. Kiện hàng đã được lưu chưa?\n2. Mã QR có chính xác không?`);
         return;
     }
-    
-    // Hiển thị modal thông báo thành công
-    showScanSuccessModal(parcel);
+
+    // 4. Gán mã vừa quét vào ô nhập liệu (để người dùng thấy mã)
+    document.getElementById('manual-parcel-id').value = parcelId;
+
+    // 5. Gọi hàm findParcel() -> Hàm này sẽ hiển thị thông tin chi tiết, 
+    // danh sách sản phẩm và các nút hành động (giống hệt nút Tìm thủ công)
+    findParcel(parcelId);
 }
 
 // Hiển thị modal thông báo quét thành công
