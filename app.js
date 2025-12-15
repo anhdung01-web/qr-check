@@ -1,5 +1,5 @@
 // ===== GITHUB GIST AUTO SYNC CONFIG =====
-const GITHUB_TOKEN = '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';
+const GITHUB_TOKEN = window.ENV?.GITHUB_TOKEN || '';
 const GIST_ID = 'b38e9ba3d55cf344507b69e2d364b5dd';
 const GIST_FILENAME = 'parcel-data.json';
 // ======================================
@@ -2640,6 +2640,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAllLogs();
 });
 async function pushToGist() {
+  if (!GITHUB_TOKEN) {
+    console.warn('⚠️ Chưa có GITHUB_TOKEN, bỏ qua push Gist');
+    return;
+  }
+
   const data = {
     parcels,
     users,
@@ -2651,7 +2656,7 @@ async function pushToGist() {
     const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: 'PATCH',
       headers: {
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        Authorization: `token ${GITHUB_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -2672,6 +2677,7 @@ async function pushToGist() {
     console.error('❌ Lỗi đẩy Gist:', err);
   }
 }
+
 // Xuất các hàm cần thiết ra global scope
 window.adjustManualQuantity = adjustManualQuantity;
 window.updateManualVerificationData = updateManualVerificationData;
