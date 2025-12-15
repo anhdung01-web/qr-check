@@ -1,3 +1,16 @@
+function getLocalData(keys, callback) {
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+    // Chrome Extension
+    chrome.storage.local.get(keys, callback);
+  } else {
+    // Web fallback
+    const result = {};
+    keys.forEach(key => {
+      result[key] = JSON.parse(localStorage.getItem(key));
+    });
+    callback(result);
+  }
+}
 // ===== GITHUB GIST AUTO SYNC CONFIG =====
 const GITHUB_TOKEN = window.ENV?.GITHUB_TOKEN || '';
 const GIST_ID = 'b38e9ba3d55cf344507b69e2d364b5dd';
@@ -2640,23 +2653,19 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAllLogs();
 });
 async function pushToGist() {
-  if (!GITHUB_TOKEN) {
-    console.warn('⚠️ Chưa có GITHUB_TOKEN, bỏ qua push Gist');
+  // 🚫 GitHub Pages / deploy: không có token
+  if (!window.ENV || !window.ENV.GITHUB_TOKEN) {
+    console.warn("🚫 Không có GitHub token → bỏ qua push Gist");
     return;
   }
 
-  const data = {
-    parcels,
-    users,
-    allLogs,
-    currentUser
-  };
+  const data = { parcels, users, allLogs, currentUser };
 
   try {
     const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: 'PATCH',
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        Authorization: `token ${window.ENV.GITHUB_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -2668,15 +2677,13 @@ async function pushToGist() {
       })
     });
 
-    if (!res.ok) {
-      throw new Error('Push Gist failed: ' + res.status);
-    }
-
-    console.log('✅ Đã tự động đẩy dữ liệu lên Gist');
-  } catch (err) {
-    console.error('❌ Lỗi đẩy Gist:', err);
+    if (!res.ok) throw new Error(res.status);
+    console.log('✅ Đã đẩy dữ liệu lên Gist');
+  } catch (e) {
+    console.error('❌ Push Gist lỗi:', e);
   }
 }
+
 
 // Xuất các hàm cần thiết ra global scope
 window.adjustManualQuantity = adjustManualQuantity;
