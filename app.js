@@ -1,26 +1,32 @@
-function getLocalData(keys, callback) {
-  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-    // Chrome Extension
-    chrome.storage.local.get(keys, callback);
-  } else {
-    // Web fallback
-    const result = {};
-    keys.forEach(key => {
-      result[key] = JSON.parse(localStorage.getItem(key));
-    });
-    callback(result);
-  }
+// --- 1. CẤU HÌNH KẾT NỐI FIREBASE ---
+const firebaseConfig = {
+    apiKey: "AIzaSyCt0b8ROmXwoJm_V2wuFHSfU2AAOh-NVf0",
+    authDomain: "qr-check-5f986.firebaseapp.com",
+    projectId: "qr-check-5f986",
+    storageBucket: "qr-check-5f986.firebasestorage.app",
+    messagingSenderId: "1092371855252",
+    appId: "1:1092371855252:web:edf4852d411858e85d4181",
+    // Link "Nhà kho" Database của bạn
+    databaseURL: "https://qr-check-5f986-default-rtdb.firebaseio.com" 
+};
+
+// --- 2. KHỞI ĐỘNG FIREBASE ---
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Đã kết nối Firebase thành công!");
+} else {
+    alert("Lỗi: Chưa tải được thư viện Firebase. Hãy kiểm tra file index.html!");
 }
-// ===== GITHUB GIST AUTO SYNC CONFIG =====
-const GITHUB_TOKEN = window.ENV?.GITHUB_TOKEN || '';
-const GIST_ID = 'b38e9ba3d55cf344507b69e2d364b5dd';
-const GIST_FILENAME = 'parcel-data.json';
-// ======================================
-// Biến toàn cục
-let parcels = JSON.parse(localStorage.getItem('parcelTrackingSystem')) || {};
-let allLogs = JSON.parse(localStorage.getItem('parcelTrackingLogs')) || [];
-let users = JSON.parse(localStorage.getItem('parcelUsers')) || {};
+const database = firebase.database();
+
+// --- 3. KHAI BÁO BIẾN (Để trống để chờ dữ liệu từ mạng về) ---
+let parcels = {}; 
+let allLogs = [];
+let users = {};
+// Riêng tài khoản đang đăng nhập thì vẫn lưu ở máy để F5 không bị thoát
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+// Các biến trạng thái khác giữ nguyên
 let html5QrCode = null;
 let isScanning = false;
 let currentVerificationParcel = null;
@@ -28,7 +34,8 @@ let verificationData = null;
 let currentCameraStream = null;
 let currentProductIndex = null;
 let editingParcelId = null;
-// Cấu hình phân trang
+
+// Cấu hình phân trang giữ nguyên
 const paginationConfig = {
     parcelsPerPage: 10,
     logsPerPage: 15,
@@ -38,27 +45,69 @@ const paginationConfig = {
     totalLogPages: 1
 };
 
-// Người dùng mẫu nếu chưa có
+// Dữ liệu mẫu (Dùng khi Database mới tinh chưa có gì)
 const defaultUsers = {
-    "NVK-001": {
-        code: "NVK-001",
-        name: "Nhân viên kho 1",
-        email: "nvk001@example.com",
-        phone: "0901000001",
-        role: "nvk",
-        password: "123456",
-        registered: "2025-01-01T08:00:00"
-    },
-    "NGH-001": {
-        code: "NGH-001",
-        name: "Người gói hàng 1",
-        email: "ngh001@example.com",
-        phone: "0902000001",
-        role: "ngh",
-        password: "123456",
-        registered: "2025-01-01T08:00:00"
-    }
+    "NVK-001": { code: "NVK-001", name: "Nhân viên kho 1", role: "nvk", password: "123456", registered: "2025-01-01T08:00:00" },
+    "NGH-001": { code: "NGH-001", name: "Người gói hàng 1", role: "ngh", password: "123456", registered: "2025-01-01T08:00:00" }
 };
+
+// --- 4. HÀM TẢI DỮ LIỆU TỰ ĐỘNG (Thay thế hàm cũ) ---
+function initializeData() {
+    console.log("Đang đồng bộ dữ liệu...");
+    const dbRef = database.ref('/');
+    
+    // Lệnh này giúp app tự cập nhật ngay lập tức khi máy khác thao tác
+    dbRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        
+        if (data) {
+            // Nếu trên mạng có dữ liệu thì tải về
+            parcels = data.parcels || {};
+            users = data.users || defaultUsers;
+            allLogs = data.allLogs || [];
+            console.log("Đã tải xong dữ liệu mới nhất.");
+        } else {
+            // Nếu là lần đầu tiên chạy, chưa có gì trên mạng -> Tự tạo dữ liệu mẫu
+            console.log("Database mới tinh, đang khởi tạo dữ liệu mẫu...");
+            users = defaultUsers;
+            parcels = {};
+            allLogs = [];
+            saveData(); // Lưu cái mẫu này lên mạng luôn
+        }
+
+        // Cập nhật lại giao diện ngay lập tức
+        updateCurrentUserDisplay();
+        adjustUIByRole();
+        updateTabCounts();
+        
+        // Vẽ lại danh sách đang xem
+        if (document.getElementById('parcels').classList.contains('active')) {
+            renderParcelsList();
+        } else if (document.getElementById('history').classList.contains('active')) {
+            renderAllLogs();
+        }
+    });
+}
+
+// --- 5. HÀM LƯU DỮ LIỆU (Thay thế hàm cũ) ---
+function saveData() {
+    // Lưu phiên đăng nhập ở máy
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    // Gửi toàn bộ dữ liệu kiện hàng lên mạng
+    database.ref('/').update({
+        parcels: parcels,
+        users: users,
+        allLogs: allLogs
+    }, (error) => {
+        if (error) {
+            console.error("Lỗi lưu dữ liệu:", error);
+            // alert("Mất kết nối mạng! Dữ liệu chưa được lưu.");
+        } else {
+            console.log("Đã lưu thành công lên đám mây.");
+        }
+    });
+}
 
 // Khởi tạo dữ liệu
 function initializeData() {
@@ -212,7 +261,6 @@ function saveData() {
     localStorage.setItem('parcelTrackingLogs', JSON.stringify(allLogs));
     localStorage.setItem('parcelUsers', JSON.stringify(users));
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    pushToGist();
 }
 
 // Cập nhật số lượng trên tab
@@ -2652,38 +2700,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderParcelsList();
     renderAllLogs();
 });
-async function pushToGist() {
-  // 🚫 GitHub Pages / deploy: không có token
-  if (!window.ENV || !window.ENV.GITHUB_TOKEN) {
-    console.warn("🚫 Không có GitHub token → bỏ qua push Gist");
-    return;
-  }
-
-  const data = { parcels, users, allLogs, currentUser };
-
-  try {
-    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `token ${window.ENV.GITHUB_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        files: {
-          [GIST_FILENAME]: {
-            content: JSON.stringify(data, null, 2)
-          }
-        }
-      })
-    });
-
-    if (!res.ok) throw new Error(res.status);
-    console.log('✅ Đã đẩy dữ liệu lên Gist');
-  } catch (e) {
-    console.error('❌ Push Gist lỗi:', e);
-  }
-}
-
 
 // Xuất các hàm cần thiết ra global scope
 window.adjustManualQuantity = adjustManualQuantity;
