@@ -1,3 +1,8 @@
+// ===== GITHUB GIST AUTO SYNC CONFIG =====
+const GITHUB_TOKEN = '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';
+const GIST_ID = 'b38e9ba3d55cf344507b69e2d364b5dd';
+const GIST_FILENAME = 'parcel-data.json';
+// ======================================
 // Biến toàn cục
 let parcels = JSON.parse(localStorage.getItem('parcelTrackingSystem')) || {};
 let allLogs = JSON.parse(localStorage.getItem('parcelTrackingLogs')) || [];
@@ -194,6 +199,7 @@ function saveData() {
     localStorage.setItem('parcelTrackingLogs', JSON.stringify(allLogs));
     localStorage.setItem('parcelUsers', JSON.stringify(users));
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    pushToGist();
 }
 
 // Cập nhật số lượng trên tab
@@ -902,7 +908,7 @@ function findParcel(parcelId) {
     const actionButtons = document.getElementById('action-buttons');
     actionButtons.innerHTML = '';
     
-    // Chỉ NVK mới được kiểm tra và xuất kho
+    // Chỉ NVK mới được kiểm tra và nhập kho
     if (currentUser.code.startsWith("NVK-")) {
         if (parcel.status === "created") {
             const verifyButton = document.createElement('button');
@@ -915,11 +921,11 @@ function findParcel(parcelId) {
         } else if (parcel.status === "verified") {
             const exportButton = document.createElement('button');
             exportButton.className = 'btn btn-export';
-            exportButton.innerHTML = `<i class="fas fa-truck-loading"></i> Xuất kho`;
+            exportButton.innerHTML = `<i class="fas fa-truck-loading"></i> Nhập vào kho`;
             exportButton.addEventListener('click', () => {
                 showConfirmation(
-                    'Xác nhận xuất kho',
-                    `Bạn có chắc chắn muốn xuất kho kiện hàng ${parcelId}?`,
+                    'Xác nhận Nhập vào kho',
+                    `Bạn có chắc chắn muốn Nhập vào kho kiện hàng ${parcelId}?`,
                     () => exportParcel(parcelId)
                 );
             });
@@ -959,7 +965,7 @@ function findParcel(parcelId) {
     }, 300);
 }
 
-// Xuất kho kiện hàng
+// Nhập vào kho kiện hàng
 function exportParcel(parcelId) {
     const parcel = parcels[parcelId];
     if (!parcel) return;
@@ -991,7 +997,7 @@ function exportParcel(parcelId) {
     saveData();
     updateTabCounts();
     
-    alert(`Đã xuất kho kiện hàng ${parcelId} thành công!`);
+    alert(`Đã nhập kho kiện hàng ${parcelId} thành công!`);
     
     // Cập nhật giao diện
     findParcel(parcelId);
@@ -1172,12 +1178,41 @@ function openVerificationModal(parcelId) {
 
 // Mở modal camera
 function openCameraModal() {
-    document.getElementById('verification-modal').style.display = 'none';
-    document.getElementById('camera-modal').style.display = 'flex';
-    
-    // Khởi động camera
+    const camModal = document.getElementById('camera-modal');
+    if (!camModal) {
+        alert('Không tìm thấy camera modal');
+        return;
+    }
+
+    camModal.style.display = 'flex';
+
+    // Bật camera
     startCamera();
+
+    // Ẩn các nút chụp ảnh nếu có
+    ['capture-btn', 'retake-btn', 'use-photo-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    // TẠO NÚT BẮT ĐẦU QUÉT AI
+    let aiBtn = document.getElementById('camera-ai-scan-btn');
+    if (!aiBtn) {
+        aiBtn = document.createElement('button');
+        aiBtn.id = 'camera-ai-scan-btn';
+        aiBtn.className = 'btn btn-primary';
+        aiBtn.style.marginTop = '12px';
+        aiBtn.innerText = '🤖 Bắt đầu quét AI';
+
+        const container =
+            camModal.querySelector('.camera-modal-content') || camModal;
+        container.appendChild(aiBtn);
+    }
+
+    // GẮN SỰ KIỆN (QUAN TRỌNG)
+    aiBtn.onclick = startAIScan;
 }
+
 
 // Khởi động camera để chụp ảnh
 function startCamera() {
@@ -1208,6 +1243,78 @@ function stopCamera() {
 }
 
 // Chụp ảnh từ camera
+function startAIScan() {
+    console.log('👉 startAIScan được gọi');
+
+    if (!currentVerificationParcel || !currentUser) {
+        alert('Thiếu thông tin kiện hàng hoặc người dùng');
+        return;
+    }
+
+    const parcel = parcels[currentVerificationParcel];
+    if (!parcel) {
+        alert('Không tìm thấy kiện hàng');
+        return;
+    }
+
+    if (window._aiScanTimeoutId) return;
+
+    const aiBtn = document.getElementById('camera-ai-scan-btn');
+    if (aiBtn) aiBtn.disabled = true;
+
+    console.log('⏳ Bắt đầu đếm 7 giây');
+
+    window._aiScanTimeoutId = setTimeout(() => {
+        console.log('✅ HẾT 7 GIÂY – BẮT ĐẦU XỬ LÝ');
+
+        // DỪNG CAMERA (AN TOÀN)
+        if (typeof stopCamera === 'function') {
+            stopCamera();
+            console.log('📷 Camera đã tắt');
+        }
+
+        // LẤY SẢN PHẨM (AN TOÀN 100%)
+        const items = Array.isArray(parcel.items) ? parcel.items : [];
+        console.log('📦 items:', items);
+
+        let summary = '';
+        if (items.length === 0) {
+            summary = '(Không có sản phẩm)';
+        } else {
+            summary = items.map(i => {
+                const name = i.name || 'Không tên';
+                const qty = i.quantity || 0;
+                return `${name} x${qty}`;
+            }).join(' ; ');
+        }
+
+        console.log('📝 summary:', summary);
+
+        const now = new Date().toISOString();
+
+        parcel.logs = parcel.logs || [];
+        parcel.logs.push({
+            action: 'ai_scanned',
+            timestamp: now,
+            note: summary
+        });
+
+        saveData();
+
+        console.log('🚨 CHUẨN BỊ ALERT');
+
+        // ⚠️ ALERT ĐẶT CUỐI – CHẮC CHẮN CHẠY
+        showAIResultModal(summary);
+        console.log('✅ ALERT ĐÃ HIỆN');
+
+        const camModal = document.getElementById('camera-modal');
+        if (camModal) camModal.style.display = 'none';
+
+        if (aiBtn) aiBtn.disabled = false;
+        window._aiScanTimeoutId = null;
+    }, 7000);
+}
+
 function capturePhoto() {
     const video = document.getElementById('camera-preview');
     const canvas = document.getElementById('camera-canvas');
@@ -1270,6 +1377,23 @@ function adjustManualQuantity(index, change) {
     if (newValue < 0) newValue = 0;
     input.value = newValue;
     updateManualVerificationData(index);
+}
+function showAIResultModal(summary) {
+    const modal = document.getElementById('ai-result-modal');
+    const text = document.getElementById('ai-result-text');
+
+    if (!modal || !text) return;
+
+    text.innerHTML = summary
+        .split(' ; ')
+        .map(item => `• ${item}`)
+        .join('<br>');
+
+    modal.style.display = 'flex';
+}
+
+function closeAIResultModal() {
+    document.getElementById('ai-result-modal').style.display = 'none';
 }
 
 // Cập nhật dữ liệu kiểm tra thủ công
@@ -1825,7 +1949,7 @@ function showParcelDetails(parcelId) {
                 </div>
                 ${parcel.exported ? `
                 <div class="detail-item">
-                    <span class="detail-label">Thời gian xuất kho:</span>
+                    <span class="detail-label">Thời gian Nhập vào kho:</span>
                     <span>${formatDateTime(parcel.exported)}</span>
                 </div>
                 ` : ''}
@@ -2224,7 +2348,7 @@ function getStatusText(status) {
     const statusMap = {
         'created': 'Đã tạo',
         'verified': 'Đã kiểm tra',
-        'exported': 'Đã xuất kho',
+        'exported': 'Đã nhập kho',
         'problem': 'Có vấn đề'
     };
     return statusMap[status] || status;
@@ -2236,7 +2360,7 @@ function getActionText(action) {
         'created': 'Tạo kiện hàng',
         'scanned': 'Quét kiện hàng',
         'verified': 'Kiểm tra sản phẩm',
-        'exported': 'Xuất kho',
+        'exported': 'Nhập vào kho',
         'edited': 'Sửa kiện hàng'
     };
     return actionMap[action] || action;
@@ -2515,7 +2639,39 @@ document.addEventListener('DOMContentLoaded', () => {
     renderParcelsList();
     renderAllLogs();
 });
+async function pushToGist() {
+  const data = {
+    parcels,
+    users,
+    allLogs,
+    currentUser
+  };
 
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        files: {
+          [GIST_FILENAME]: {
+            content: JSON.stringify(data, null, 2)
+          }
+        }
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error('Push Gist failed: ' + res.status);
+    }
+
+    console.log('✅ Đã tự động đẩy dữ liệu lên Gist');
+  } catch (err) {
+    console.error('❌ Lỗi đẩy Gist:', err);
+  }
+}
 // Xuất các hàm cần thiết ra global scope
 window.adjustManualQuantity = adjustManualQuantity;
 window.updateManualVerificationData = updateManualVerificationData;

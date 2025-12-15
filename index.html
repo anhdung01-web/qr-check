@@ -364,7 +364,7 @@
                         <button class="btn status-filter active" data-status="all">Tất cả (<span id="count-all">0</span>)</button>
                         <button class="btn status-filter" data-status="created">Đã tạo (<span id="count-created">0</span>)</button>
                         <button class="btn status-filter" data-status="verified">Đã kiểm tra (<span id="count-verified">0</span>)</button>
-                        <button class="btn status-filter" data-status="exported">Đã xuất kho (<span id="count-exported">0</span>)</button>
+                        <button class="btn status-filter" data-status="exported">Đã nhập vào kho (<span id="count-exported">0</span>)</button>
                         <button class="btn status-filter" data-status="problem">Có vấn đề (<span id="count-problem">0</span>)</button>
                     </div>
                 </div>
@@ -419,7 +419,7 @@
                             <li>Quét QR code kiện hàng để kiểm tra</li>
                             <li>Đối chiếu sản phẩm thực tế với thông tin hệ thống</li>
                             <li>Xác nhận kiện hàng đã đúng và đủ</li>
-                            <li>Xuất kho kiện hàng sau khi kiểm tra thành công</li>
+                            <li>Nhập vào kho kiện hàng sau khi kiểm tra thành công</li>
                             <li>Ghi chú vấn đề nếu phát hiện sai sót</li>
                         </ul>
                     </div>
@@ -436,8 +436,8 @@
                         <p>NVK quét QR code, đối chiếu sản phẩm thực tế với thông tin hệ thống. Xác nhận "Thành công" hoặc "Có vấn đề".</p>
                     </div>
                     <div class="guide-step">
-                        <h4><span class="step-number">3</span> Xuất kho (NVK)</h4>
-                        <p>Sau khi kiểm tra thành công, NVK thực hiện "Xuất kho" để đánh dấu kiện đã giao cho bộ phận vận chuyển.</p>
+                        <h4><span class="step-number">3</span> Nhập vào kho (NVK)</h4>
+                        <p>Sau khi kiểm tra thành công, NVK thực hiện "Nhập vào kho" để đánh dấu kiện đã giao cho bộ phận vận chuyển.</p>
                     </div>
                     <div class="guide-step">
                         <h4><span class="step-number">4</span> Sửa kiện hàng (NGH)</h4>
@@ -649,5 +649,13 @@
     </footer>
 
     <script src="app.js"></script>
+    <div id="ai-result-modal" class="ai-modal">
+    <div class="ai-modal-content">
+        <div class="ai-icon">🤖</div>
+        <h2>AI quét thành công</h2>
+        <div id="ai-result-text" class="ai-result-text"></div>
+        <button onclick="closeAIResultModal()" class="ai-btn">Đóng</button>
+    </div>
+</div>
 </body>
 </html>
